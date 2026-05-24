@@ -1,0 +1,365 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Richardson's Extrapolation Dashboard</title>
+
+    <script src="https://polyfill.io/v3/polyfill.min.js?features=es6"></script>
+    <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+
+    <style>
+        :root {
+            --primary: #0f766e;       /* Deep Teal */
+            --primary-hover: #115e59; /* Darker Teal */
+            --secondary: #0f172a;     /* Slate Dark Blue */
+            --bg-main: #f8fafc;       /* Clean grayish white */
+            --bg-card: #ffffff;
+            --text-main: #334155;     /* Dark gray prose text */
+            --text-heading: #0f172a;
+            --border-color: #e2e8f0;
+            --accent-bg: #f0fdfa;     /* Light teal tint */
+            --accent-border: #99f6e4;
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+
+        body {
+            font-family: 'Inter', system-ui, -apple-system, sans-serif;
+            background-color: var(--bg-main);
+            color: var(--text-main);
+            line-height: 1.6;
+            padding: 40px 20px;
+        }
+
+        .dashboard-layout {
+            max-width: 1040px;
+            margin: auto;
+        }
+
+        header {
+            margin-bottom: 30px;
+            border-bottom: 2px solid var(--border-color);
+            padding-bottom: 20px;
+        }
+
+        header h1 {
+            color: var(--text-heading);
+            font-size: 2.2rem;
+            font-weight: 800;
+            letter-spacing: -0.025em;
+        }
+
+        header p {
+            color: #64748b;
+            margin-top: 5px;
+            font-size: 1.05rem;
+        }
+
+        h2 {
+            color: var(--text-heading);
+            font-size: 1.4rem;
+            font-weight: 700;
+            margin-bottom: 15px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .card {
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            padding: 28px;
+            margin-bottom: 30px;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -2px rgba(0, 0, 0, 0.05);
+        }
+
+        p { margin-bottom: 15px; font-size: 1rem; color: var(--text-main); }
+        strong { color: var(--text-heading); }
+
+        /* Formula block stylings */
+        .formula-block {
+            background: #f1f5f9;
+            padding: 15px;
+            border-radius: 8px;
+            margin: 15px 0;
+            text-align: center;
+            border: 1px solid #e2e8f0;
+        }
+
+        /* Worked Examples layouts */
+        .example-grid {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 20px;
+        }
+
+        @media (min-width: 768px) {
+            .example-grid { grid-template-columns: 1fr 1fr; }
+        }
+
+        .example-subcard {
+            background: #fafafa;
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            padding: 20px;
+            border-top: 4px solid var(--primary);
+        }
+
+        .example-subcard h3 {
+            font-size: 1.15rem;
+            color: var(--primary);
+            margin-bottom: 12px;
+        }
+
+        .example-subcard h4 {
+            font-size: 0.95rem;
+            margin: 12px 0 6px 0;
+            color: var(--text-heading);
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+
+        ul { margin-left: 20px; margin-bottom: 10px; font-size: 0.95rem; }
+        li { margin-bottom: 5px; }
+
+        /* Interactive Form controls */
+        .calc-form {
+            background-color: var(--accent-bg);
+            border: 1px solid var(--accent-border);
+        }
+
+        .form-row {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 20px;
+            margin-bottom: 20px;
+        }
+
+        @media (min-width: 600px) {
+            .form-row.three-cols { grid-template-columns: 2fr 1fr 1fr; }
+        }
+
+        .form-group label {
+            display: block;
+            font-weight: 600;
+            margin-bottom: 6px;
+            font-size: 0.9rem;
+            color: var(--secondary);
+        }
+
+        input[type="text"] {
+            width: 100%;
+            padding: 12px 14px;
+            border: 1px solid #cbd5e1;
+            border-radius: 6px;
+            font-size: 1rem;
+            font-family: 'Fira Code', monospace;
+            background-color: #ffffff;
+            transition: border-color 0.2s, box-shadow 0.2s;
+        }
+
+        input[type="text"]:focus {
+            outline: none;
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px rgba(15, 118, 110, 0.15);
+        }
+
+        .syntax-tip {
+            font-size: 0.85rem;
+            color: #64748b;
+            margin-top: 5px;
+        }
+
+        button {
+            background-color: var(--primary);
+            color: white;
+            border: none;
+            padding: 14px 24px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 1rem;
+            font-weight: 600;
+            width: 100%;
+            transition: background-color 0.2s;
+        }
+
+        button:hover { background-color: var(--primary-hover); }
+
+        /* Data logs and tables styling */
+        .table-responsive {
+            width: 100%;
+            overflow-x: auto;
+            margin-top: 20px;
+            border-radius: 8px;
+            border: 1px solid var(--border-color);
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            background: white;
+            font-size: 0.95rem;
+        }
+
+        th, td { padding: 14px 16px; text-align: center; border-bottom: 1px solid var(--border-color); }
+        th { background-color: #f1f5f9; color: var(--secondary); font-weight: 600; font-size: 0.88rem; }
+        tr:last-child td { border-bottom: none; }
+
+        .badge-success {
+            background-color: #dcfce7;
+            color: #15803d;
+            padding: 6px 12px;
+            border-radius: 6px;
+            font-weight: 700;
+        }
+
+        .alert-error {
+            background-color: #fef2f2;
+            border: 1px solid #fca5a5;
+            color: #991b1b;
+            padding: 15px;
+            border-radius: 6px;
+            margin-top: 20px;
+            font-size: 0.95rem;
+        }
+    </style>
+</head>
+<body>
+
+<div class="dashboard-layout">
+
+    <header>
+        <h1>Richardson's Extrapolation Module</h1>
+    </header>
+
+    <section class="card">
+        <h2>01. Mathematical Discussion</h2>
+        <p><strong>Richardson's Extrapolation</strong> is a sequence acceleration method used to improve the rate of convergence of a numerical approximation. It combines two linear approximations of a specific step size (typically \(h\) and \(\frac{h}{2}\)) to cancel out the leading error terms, thereby yielding a higher-order accurate formula.</p>
+        <p>When applied to numerical differentiation using the Central Difference scheme of order \(\mathcal{O}(h^2)\), the extrapolated formula of order \(\mathcal{O}(h^4)\) is expressed as:</p>
+
+        <div class="formula-block">
+            $$D = \frac{4D\left(\frac{h}{2}\right) - D(h)}{3}$$
+        </div>
+
+        <p>Where \(D(h)\) and \(D\left(\frac{h}{2}\right)\) are the standard central difference estimates for step sizes \(h\) and \(\frac{h}{2}\) respectively:</p>
+
+        <div class="formula-block">
+            $$D(h) = \frac{f(x + h) - f(x - h)}{2h}$$
+        </div>
+    </section>
+
+    <section class="card">
+        <h2>02. Fully Worked Step-by-Step Examples</h2>
+
+        <div class="example-grid">
+            <div class="example-subcard">
+                <h3>Example 1: \(f(x) = x^2\) at \(x = 2.0\)</h3>
+                <p><strong>Config:</strong> Step size \(h = 0.1\). Exact target derivative is \(4.0\).</p>
+
+                <h4>Step 1: Compute \(D(0.1)\)</h4>
+                <ul>
+                    <li>\(f(2.1) = 2.1^2 = 4.41\)</li>
+                    <li>\(f(1.9) = 1.9^2 = 3.61\)</li>
+                    <li>$$D(0.1) = \frac{4.41 - 3.61}{0.2} = 4.0000$$</li>
+                </ul>
+
+                <h4>Step 2: Compute \(D(0.05)\)</h4>
+                <ul>
+                    <li>\(f(2.05) = 2.05^2 = 4.2025\)</li>
+                    <li>\(f(1.95) = 1.95^2 = 3.8025\)</li>
+                    <li>$$D(0.05) = \frac{4.2025 - 3.8025}{0.1} = 4.0000$$</li>
+                </ul>
+
+                <h4>Step 3: Extrapolate</h4>
+                <p>$$D = \frac{4(4.0000) - 4.0000}{3} = 4.0000$$</p>
+            </div>
+
+            <div class="example-subcard">
+                <h3>Example 2: \(f(x) = x^3\) at \(x = 1.0\)</h3>
+                <p><strong>Config:</strong> Step size \(h = 0.2\). Exact target derivative is \(3.0\).</p>
+
+                <h4>Step 1: Compute \(D(0.2)\)</h4>
+                <ul>
+                    <li>\(f(1.2) = 1.2^3 = 1.728\)</li>
+                    <li>\(f(0.8) = 0.8^3 = 0.512\)</li>
+                    <li>$$D(0.2) = \frac{1.728 - 0.512}{0.4} = 3.0400$$</li>
+                </ul>
+
+                <h4>Step 2: Compute \(D(0.1)\)</h4>
+                <ul>
+                    <li>\(f(1.1) = 1.1^3 = 1.331\)</li>
+                    <li>\(f(0.9) = 0.9^3 = 0.729\)</li>
+                    <li>$$D(0.1) = \frac{1.331 - 0.729}{0.2} = 3.0100$$</li>
+                </ul>
+
+                <h4>Step 3: Extrapolate</h4>
+                <p>$$D = \frac{4(3.0100) - 3.0400}{3} = 3.0000$$</p>
+            </div>
+        </div>
+    </section>
+
+    <section class="card calc-form">
+        <h2>03. Interactive Extrapolation Calculator</h2>
+        <p style="color: #475569; margin-bottom: 20px;">Input variables to simulate execution across the Richardson numerical grid infrastructure.</p>
+
+        <form method="POST" action="/">
+            <div class="form-row three-cols">
+                <div class="form-group">
+                    <label for="fx">Function f(x)</label>
+                    <input type="text" id="fx" name="fx" value="{{ fx if fx else 'x**2' }}" required>
+                    <div class="syntax-tip">Python rules: e.g., <code>x**3 - x</code> or <code>5 * x * exp(-2 * x)</code></div>
+                </div>
+                <div class="form-group">
+                    <label for="x_target">Target Point (x)</label>
+                    <input type="text" id="x_target" name="x_target" value="{{ x_target if x_target else '2.0' }}" required>
+                </div>
+                <div class="form-group">
+                    <label for="h">Step Size (h)</label>
+                    <input type="text" id="h" name="h" value="{{ h if h else '0.1' }}" required>
+                </div>
+            </div>
+            <button type="submit">COMPUTE</button>
+        </form>
+
+        {% if results %}
+            <div style="margin-top: 35px; border-top: 1px solid var(--accent-border); padding-top: 25px;">
+                <h3 style="color: var(--secondary); font-size: 1.15rem; font-weight: 700; margin-bottom: 10px;">Computation Core Output Logs</h3>
+                <div class="table-responsive">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Grid Size (h)</th>
+                                <th>D(h) [O(h²)]</th>
+                                <th>Refined Grid (h/2)</th>
+                                <th>D(h/2) [O(h²)]</th>
+                                <th>Extrapolated Value [O(h⁴)]</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for row in results %}
+                                <tr>
+                                    <td>{{ row.h }}</td>
+                                    <td>{{ "%.5f"|format(row.D_h) }}</td>
+                                    <td>{{ row.half_h }}</td>
+                                    <td>{{ "%.5f"|format(row.D_half_h) }}</td>
+                                    <td><span class="badge-success">{{ "%.5f"|format(row.final_D) }}</span></td>
+                                </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        {% endif %}
+
+        {% if error %}
+            <div class="alert-error">
+                <strong>Engine Operational Error:</strong> {{ error }}
+            </div>
+        {% endif %}
+    </section>
+</div>
+
+</body>
+</html>
